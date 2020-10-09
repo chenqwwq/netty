@@ -15,12 +15,7 @@
  */
 package io.netty.channel.nio;
 
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
-import io.netty.channel.DefaultSelectStrategyFactory;
-import io.netty.channel.EventLoopTaskQueueFactory;
-import io.netty.channel.MultithreadEventLoopGroup;
-import io.netty.channel.SelectStrategyFactory;
+import io.netty.channel.*;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorChooserFactory;
 import io.netty.util.concurrent.RejectedExecutionHandler;
@@ -139,6 +134,12 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         }
     }
 
+    /**
+     * newChild方法就是多线程的事件处理组中生成单个事件处理的方法
+     *
+     * @see io.netty.util.concurrent.MultithreadEventExecutorGroup#MultithreadEventExecutorGroup
+     * @see NioEventLoop#NioEventLoop(NioEventLoopGroup, Executor, SelectorProvider, SelectStrategy, RejectedExecutionHandler, EventLoopTaskQueueFactory)
+     */
     @Override
     protected EventLoop newChild(Executor executor, Object... args) throws Exception {
         EventLoopTaskQueueFactory queueFactory = args.length == 4 ? (EventLoopTaskQueueFactory) args[3] : null;

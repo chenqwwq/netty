@@ -30,6 +30,9 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
+import java.net.SocketAddress;
+import java.util.concurrent.ThreadPoolExecutor;
+
 /**
  * Echoes back any received data from a client.
  */
@@ -49,28 +52,52 @@ public final class EchoServer {
         }
 
         // Configure the server.
+        // 创建两组线程池
+        // Selector对象在EventLoop创建的时候就生成了
+        // doubt: EventLoop，EventLoopGroup，EventExecutor等类之间的关系
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();
         try {
+            // 创建并配置SeverBootStrap
+            // 构造函数啥事没干
             ServerBootstrap b = new ServerBootstrap();
+            // 指定两个线程组,Netty是以何种Reactor的形式运行的在此时就决定了
             b.group(bossGroup, workerGroup)
-             .channel(NioServerSocketChannel.class)
-             .option(ChannelOption.SO_BACKLOG, 100)
-             .handler(new LoggingHandler(LogLevel.INFO))
-             .childHandler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         p.addLast(sslCtx.newHandler(ch.alloc()));
-                     }
-                     //p.addLast(new LoggingHandler(LogLevel.INFO));
-                     p.addLast(serverHandler);
-                 }
-             });
+                    // 服务端的Channel类型
+                    // 切换协议类型以及Nio,Bio就在这里修改
+                    // TCP & NIO - NioSocketChannel
+                    // UDP & NIO - NioDatagramChannel 等等...
+                    .channel(NioServerSocketChannel.class)
+                    // 服务端Channel的配置
+                    // 常用的还有SO_KEEPALIVE,SO_SNDBUF,SO_RCVBUF等
+                    .option(ChannelOption.SO_BACKLOG, 100)
+                    // 服务端的Handler
+                    // doubt: 服务端Handler的处理逻辑
+                    // 搜了下网上说是handler仅仅在初始化时执行一次
+                    // childHandler会在客户端连接后执行
+                    .handler(new LoggingHandler(LogLevel.INFO))
+                    // 指定了ChannelInitializer
+                    // doubt: 如何根据ChannelInitializer生成ChannelPipeline
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) throws Exception {
+                            ChannelPipeline p = ch.pipeline();
+                            if (sslCtx != null) {
+                                p.addLast(sslCtx.newHandler(ch.alloc()));
+                            }
+                            //p.addLast(new LoggingHandler(LogLevel.INFO));
+                            p.addLast(serverHandler);
+                        }
+                    });
+
+            // 以上流程之后ServerBootStrap已经完全创建好了
 
             // Start the server.
+            // 同步绑定端口
+            /**
+             * @see io.netty.bootstrap.AbstractBootstrap#doBind(SocketAddress)
+             */
             ChannelFuture f = b.bind(PORT).sync();
 
             // Wait until the server socket is closed.
