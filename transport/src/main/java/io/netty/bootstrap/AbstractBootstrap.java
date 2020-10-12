@@ -272,23 +272,28 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * 真正执行Socket相关绑定的地方
+     * 初始化并注册
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
-        // 初始化Channel
+        // 创建并初始化Channel
+        // 这里的注册是指将Channel注册到EventLoop中
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
+        // 异常
         if (regFuture.cause() != null) {
             return regFuture;
         }
 
+        // 初始化并注册完成
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
+            // doBind0是异步进行的
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
+            //
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
@@ -316,6 +321,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         try {
             // 创建新的Channel,根据ChannelFactory不同获取不同的Channel
             // 会调用具体Channel类的构造函数
+            // 这里
             /**
              * @see NioServerSocketChannel#NioServerSocketChannel()
              */
@@ -339,8 +345,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
 
         // 注册Channel到EventLoop中
-        // doubt: 不懂为什么要通过config()再获取group()，直接获取不就好了
-
+        // register方法会EventLoopGroup中的一个进行绑定
+        // doubt: 不懂为什么要通过config()再获取group()，直接group()获取不就好了
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {

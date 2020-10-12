@@ -129,6 +129,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     /**
      * ServerBootstrap中初始化的是服务端的Channel，例如NioServerSocketChannel
+     * <p>
+     * 明确这里初始化的是服务端的Channel
      */
     @Override
     void init(Channel channel) {
@@ -137,9 +139,13 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         setAttributes(channel, attrs0().entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY));
 
         // 这里很明显可以看到,Pipeline是由Channel持有的
-        // 在服务端这里可能是指NioServerSocketChannel
+        // 在服务端这里可能是指NioServerSocketChannel,Pipeline在AbstractChannel的构造函数中创建
+        /**
+         * @see io.netty.channel.AbstractChannel#AbstractChannel(Channel)
+         */
         ChannelPipeline p = channel.pipeline();
 
+        // 关于child也就是客户端Channel的配置
         final EventLoopGroup currentChildGroup = childGroup;
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions;
@@ -149,10 +155,12 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
 
         // 往Pipeline中添加配置中的Handler以及异步的添加ServerBootStrapAcceptor
+        // doubt: 为什么这里要用一个ChannelInitializer来完成
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
+                // 在EchoServer中这里就是LoggingHandler
                 ChannelHandler handler = config.handler();
                 if (handler != null) {
                     pipeline.addLast(handler);
@@ -167,6 +175,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                                 ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));
                     }
                 });
+
+                // 以上一共添加了两个Handler
             }
         });
     }

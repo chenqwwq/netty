@@ -16,12 +16,9 @@
 package io.netty.example.echo;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
@@ -51,9 +48,10 @@ public final class EchoServer {
             sslCtx = null;
         }
 
+        // Netty服务端的初始化流程基本上就是创建关键的ServerSocketChannel，并初始化一些通用组件，比如EventLoopGroup，ServerBootstrap等
+        // 另外的需要将ServerSocketChannel注册到bossGroup中，并开启accept，设置SelectorKey
+
         // Configure the server.
-        // 创建两组线程池
-        // Selector对象在EventLoop创建的时候就生成了
         // doubt: EventLoop，EventLoopGroup，EventExecutor等类之间的关系
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -76,9 +74,15 @@ public final class EchoServer {
                     // doubt: 服务端Handler的处理逻辑
                     // 搜了下网上说是handler仅仅在初始化时执行一次
                     // childHandler会在客户端连接后执行
-                    .handler(new LoggingHandler(LogLevel.INFO))
+                    .handler(new ChannelInitializer<ServerSocketChannel>() {
+                        @Override
+                        protected void initChannel(ServerSocketChannel ch) throws Exception {
+                            ch.pipeline().addLast(new LoggingHandler());
+                            ch.pipeline().addLast(new LearnHandler());
+                        }
+                    })
                     // 指定了ChannelInitializer
-                    // doubt: 如何根据ChannelInitializer生成ChannelPipeline
+                    // 如何根据ChannelInitializer生成ChannelPipeline
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
