@@ -134,15 +134,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      */
     @Override
     void init(Channel channel) {
-        // 设置Channel的属性和配置
+        // 设置ChannelOption和Attribute
         setChannelOptions(channel, newOptionsArray(), logger);
         setAttributes(channel, attrs0().entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY));
 
-        // 这里很明显可以看到,Pipeline是由Channel持有的
-        // 在服务端这里可能是指NioServerSocketChannel,Pipeline在AbstractChannel的构造函数中创建
-        /**
-         * @see io.netty.channel.AbstractChannel#AbstractChannel(Channel)
-         */
         ChannelPipeline p = channel.pipeline();
 
         // 关于child也就是客户端Channel的配置
@@ -155,19 +150,18 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
 
         // 往Pipeline中添加配置中的Handler以及异步的添加ServerBootStrapAcceptor
-        // doubt: 为什么这里要用一个ChannelInitializer来完成
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
-                // 在EchoServer中这里就是LoggingHandler
+                // 在EchoServer中这里就是LoggingHandler和LearnHandler组成的ChannelInitializer对象
                 ChannelHandler handler = config.handler();
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
 
-                // Channel同样持有EventLoop
-                // 不过这个时候eventLoop还是空的
+                // 再添加ServerBootstrapAccepter
+                // 这个类用的异步的方式添加
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -176,7 +170,6 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                     }
                 });
 
-                // 以上一共添加了两个Handler
             }
         });
     }

@@ -77,6 +77,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     @Override
     public ChannelFuture register(Channel channel) {
+        // Channel被包装成了DefaultChannelPromise
         return register(new DefaultChannelPromise(channel, this));
     }
 
@@ -87,6 +88,8 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
          * @see io.netty.channel.AbstractChannel.AbstractUnsafe#register(EventLoop, ChannelPromise)
          */
         // ChannelPromise中包含了Channel部分，直接从里面获取并进行绑定
+        // 最终还是类似于调用了channel.unsafe().register()
+        // 这么多步的意义应该是在使用EventLoop的线程执行，并转化为异步的Promise
         promise.channel().unsafe().register(this, promise);
         return promise;
     }

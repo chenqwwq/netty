@@ -471,7 +471,6 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
-                // 首次创建并添加任务的时候肯定不在，所以此处会开启eventLoop中的工作线程
                 try {
                     eventLoop.execute(new Runnable() {
                         @Override
@@ -499,12 +498,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 }
                 boolean firstRegistration = neverRegistered;
                 /**
-                 * 将Selector绑定到Channel
-                 * 并不会有interestOp
+                 * 这里就是对任何事件都不感兴趣的注册到Selector上
+                 * Selector对象是由EventLoop持有的
                  *
                  * @see AbstractNioChannel#doRegister()
                  */
                 doRegister();
+                // 修改Channel的标记位
                 neverRegistered = false;
                 registered = true;
 
@@ -515,7 +515,6 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 safeSetSuccess(promise);
 
                 // 会触发ChannelRegister事件
-                System.out.println("source code : 触发ChannelRegistered事件");
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.

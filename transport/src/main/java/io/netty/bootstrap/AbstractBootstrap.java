@@ -272,11 +272,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * 初始化并注册
+     * 绑定端口
+     * <p>
+     * Netty的端口绑定操作包含了ServerSocket的创建和初始化
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
-        // 创建并初始化Channel
-        // 这里的注册是指将Channel注册到EventLoop中
+        // 初始化并注册Channel
+        // ChannelFuture用来存放异步的结果
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         // 异常
@@ -320,11 +322,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         Channel channel = null;
         try {
             // 创建新的Channel,根据ChannelFactory不同获取不同的Channel
-            // 会调用具体Channel类的构造函数
-            // 这里
-            /**
-             * @see NioServerSocketChannel#NioServerSocketChannel()
-             */
+            // 这个ChannelFactory就是在Bootstrap初始化的时候创建的
+            /** {@link ServerBootstrap#channel(Class)} **/
+            // 最终创建的是NioServerSocketChannel
+            /** {@link NioServerSocketChannel#NioServerSocketChannel()} **/
             channel = channelFactory.newChannel();
             /**
              * 对Channel进行初始化
@@ -344,9 +345,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
-        // 注册Channel到EventLoop中
+        // 异步注册Channel到EventLoop中
         // register方法会EventLoopGroup中的一个进行绑定
-        // doubt: 不懂为什么要通过config()再获取group()，直接group()获取不就好了
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {

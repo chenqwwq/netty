@@ -26,6 +26,7 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.net.SocketAddress;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -91,7 +92,9 @@ public final class EchoServer {
                                 p.addLast(sslCtx.newHandler(ch.alloc()));
                             }
                             //p.addLast(new LoggingHandler(LogLevel.INFO));
-                            p.addLast(serverHandler);
+                            EventExecutorGroup businessGroup = new NioEventLoopGroup(10);
+                            p.addLast(businessGroup, serverHandler);
+                            p.addLast(businessGroup, new LoggingHandler());
                         }
                     });
 
