@@ -444,21 +444,37 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             try {
                 int strategy;
                 try {
+                    /** {@link io.netty.channel.DefaultSelectStrategy} **/
+                    // 如果有任务会返回selectNow的值，如果灭有返回SelectStrategy.SELECT
                     strategy = selectStrategy.calculateStrategy(selectNowSupplier, hasTasks());
                     switch (strategy) {
                         case SelectStrategy.CONTINUE:
                             continue;
-
                         case SelectStrategy.BUSY_WAIT:
                             // fall-through to SELECT since the busy-wait is not supported with NIO
-
                         case SelectStrategy.SELECT:
+                            // 进到这部分代码说明任务队列为空
+                            /*
+                             * tailTasks和taskQueue都为空
+                             *
+                             * 至于为什么需要两个队列的原因，是因为SingleThreadEventLoop在SingleThreadEventExecutor的基础上进行的扩展
+                             * tailTasks为低优先级队列，只有在taskQueue的任务执行完之后才会被执行
+                             *
+                             * SingleThreadEventLoop持有tailTasks，保存所有低优先级任务
+                             * SingleThreadEventExecutor持有taskQueue，保存所有正常的任务队列
+                             * AbstractScheduledEventExecutor持有scheduledTaskQueue，保存所有延时任务
+                             **/
+
+                            // 这里是计算需要等待的时间
+                            // 找到队列中下一个计划好的时间,直接从优先级队列中查看队首的任务
                             long curDeadlineNanos = nextScheduledTaskDeadlineNanos();
                             if (curDeadlineNanos == -1L) {
                                 curDeadlineNanos = NONE; // nothing on the calendar
                             }
                             nextWakeupNanos.set(curDeadlineNanos);
                             try {
+                                // 没有任务的话就调用select，阻塞当前线程，等待IO事件
+                                //
                                 if (!hasTasks()) {
                                     strategy = select(curDeadlineNanos);
                                 }
@@ -487,10 +503,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 if (ioRatio == 100) {
                     try {
                         if (strategy > 0) {
+                            // 处理IO请求
                             processSelectedKeys();
                         }
                     } finally {
                         // Ensure we always run tasks.
+                        // 执行所有的任务
                         ranTasks = runAllTasks();
                     }
                 } else if (strategy > 0) {
@@ -577,6 +595,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 该方法处理所有就绪的SelectionKey
+     */
     private void processSelectedKeys() {
         if (selectedKeys != null) {
             processSelectedKeysOptimized();
@@ -803,6 +824,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     int selectNow() throws IOException {
+        // 不会阻塞会立即返回
         return selector.selectNow();
     }
 

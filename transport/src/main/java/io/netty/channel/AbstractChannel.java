@@ -569,6 +569,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 之前未绑定，但是现在绑定了端口
+            // 触发fireChannelActive
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {
                     @Override
