@@ -16,6 +16,7 @@ public class LearnHandler extends ChannelDuplexHandler {
     @Override
     public void bind(ChannelHandlerContext ctx, SocketAddress localAddress, ChannelPromise promise) throws Exception {
         System.out.println("Fuucckkk");
+//        ctx.bind(localAddress, promise);
         super.bind(ctx, localAddress, promise);
     }
 

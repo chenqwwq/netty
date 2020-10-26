@@ -347,6 +347,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // 异步注册Channel到EventLoop中
         // register方法会EventLoopGroup中的一个进行绑定
+        // EventLoop在绑定了Channel之后才会开启轮询
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {

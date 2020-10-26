@@ -89,11 +89,15 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      */
     private boolean registered;
 
+    /**
+     * 构造一个新的ChannelPipeline
+     */
     protected DefaultChannelPipeline(Channel channel) {
         this.channel = ObjectUtil.checkNotNull(channel, "channel");
         succeededFuture = new SucceededChannelFuture(channel, null);
         voidPromise = new VoidChannelPromise(channel, true);
 
+        // Tail和Head是预配的
         tail = new TailContext(this);
         head = new HeadContext(this);
 
@@ -165,7 +169,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     @Override
     public final ChannelPipeline addFirst(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
+        // 上锁 避免并发写入的异常
         synchronized (this) {
+            // 检查是否重复
             checkMultiplicity(handler);
             name = filterName(name, handler);
 
@@ -630,6 +636,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                         h.getClass().getName() +
                                 " is not a @Sharable handler, so can't be added or removed multiple times.");
             }
+            /**
+             * 这里可以看出{@link io.netty.channel.ChannelHandler.Sharable}的作用了，
+             * Handler被添加过都会标记{@link ChannelHandlerAdapter.added}为true
+             * 只有添加了Sharable的HHandler才可以被重复添加
+             */
             h.added = true;
         }
     }

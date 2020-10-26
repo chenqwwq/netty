@@ -150,8 +150,13 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         javaChannel().close();
     }
 
+    /**
+     * 读取
+     */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
+        // 获取指定的Channel
+        // 因为是非阻塞模式，accept会直接返回
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {

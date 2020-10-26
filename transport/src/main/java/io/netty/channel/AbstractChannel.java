@@ -452,6 +452,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             return remoteAddress0();
         }
 
+        /**
+         * 将Channel注册到参数1EventLoop中
+         */
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             ObjectUtil.checkNotNull(eventLoop, "eventLoop");
@@ -472,6 +475,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 register0(promise);
             } else {
                 try {
+                    /**
+                     * @see io.netty.util.concurrent.SingleThreadEventExecutor#execute(Runnable)
+                     */
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -872,6 +878,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         }
 
         @Override
+        // 写事件的基本框架
         public final void write(Object msg, ChannelPromise promise) {
             assertEventLoop();
 
@@ -889,6 +896,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             int size;
             try {
+                // 对出站消息的拦截过滤
                 msg = filterOutboundMessage(msg);
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
@@ -900,6 +908,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 添加到缓冲区，没有flush所以还没有写到网卡发送
             outboundBuffer.addMessage(msg, size, promise);
         }
 
