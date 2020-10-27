@@ -28,14 +28,7 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -234,7 +227,6 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             // In this case we add the context to the pipeline and add a task that will call
             // ChannelHandler.handlerAdded(...) once the channel is registered.
 
-            // 未注册
             // 因为Netty的原则是事件需要在同一个EventLoop中处理
             if (!registered) {
                 // 未注册的话就需要等待注册之后在执行
@@ -245,6 +237,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
 
+            // 这里是在注册之后的调用逻辑
             EventExecutor executor = newCtx.executor();
             if (!executor.inEventLoop()) {
                 callHandlerAddedInEventLoop(newCtx, executor);
@@ -682,13 +675,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 再触发ChannelRegistered事件之前先把Handler全加上
+     */
     final void invokeHandlerAddedIfNeeded() {
         assert channel.eventLoop().inEventLoop();
         // 判断是否是首次注册
         // 因为是异步的操作，需要一个变量控制某个操作只进行了一次
-        // 调用的地方有以下两个
-        // AbstractChannel#register
-        /** {@link HeadContext#channelRegistered} **/
         if (firstRegistration) {
             firstRegistration = false;
             // We are now registered to the EventLoop. It's time to call the callbacks for the ChannelHandlers,
@@ -1142,6 +1135,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     /**
      * 方法就是在将pendingHandlerCallBackHead链表中的任务全部执行完
+     * <p>
+     * 接下来看这个链表是如何生成和添加的
      */
     private void callHandlerAddedForAllHandlers() {
         final PendingHandlerCallback pendingHandlerCallbackHead;
@@ -1183,6 +1178,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     private void callHandlerAddedInEventLoop(final AbstractChannelHandlerContext newCtx, EventExecutor executor) {
+        // 修改Context的状态
         newCtx.setAddPending();
         executor.execute(new Runnable() {
             @Override
@@ -1430,6 +1426,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             ctx.fireExceptionCaught(cause);
         }
 
+        /**
+         * 在NioServerSocketChannel注册之后触发
+         */
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) {
             invokeHandlerAddedIfNeeded();
@@ -1488,6 +1487,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             ctx.fireChannelWritabilityChanged();
         }
     }
+
 
     private abstract static class PendingHandlerCallback implements Runnable {
         final AbstractChannelHandlerContext ctx;

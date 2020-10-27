@@ -21,7 +21,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -29,7 +28,6 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.net.SocketAddress;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Echoes back any received data from a client.
@@ -54,6 +52,9 @@ public final class EchoServer {
 
         // Configure the server.
         // doubt: EventLoop，EventLoopGroup，EventExecutor等类之间的关系
+        // 初始化EventLoopGroup
+        // 会一起初始化nThreads个EventLoop，但是其中并不会开启线程
+        // 每个EventLoop会各自生成Selector
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();

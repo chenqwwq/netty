@@ -109,11 +109,13 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
      */
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+        // 再次检查Channel是否已经注册
         if (ctx.channel().isRegistered()) {
             // This should always be true with our current DefaultChannelPipeline implementation.
             // The good thing about calling initChannel(...) in handlerAdded(...) is that there will be no ordering
             // surprises if a ChannelInitializer will add another ChannelInitializer. This is as all handlers
             // will be added in the expected order.
+            // 调用initChannel，这个就是在使用ChannelInitializer时定义的类
             if (initChannel(ctx)) {
 
                 // We are done with init the Channel, removing the initializer now.
@@ -128,6 +130,9 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * 调用模板的initChannel方法添加ChannelHandler，最后删除自身
+     */
     private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
         if (initMap.add(ctx)) { // Guard against re-entrance.
             try {

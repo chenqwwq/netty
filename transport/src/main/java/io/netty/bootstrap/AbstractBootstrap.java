@@ -16,16 +16,7 @@
 
 package io.netty.bootstrap;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultChannelPromise;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.ReflectiveChannelFactory;
+import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.EventExecutor;
@@ -291,6 +282,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
             // doBind0是异步进行的
+            // bind事件会从TailContext开始传送,最终到HeadContext,由下面的Unsafe类完成原生绑定
+            /** {@link io.netty.channel.AbstractChannel.AbstractUnsafe#bind(SocketAddress, ChannelPromise)} )} **/
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
@@ -347,7 +340,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // 异步注册Channel到EventLoop中
         // register方法会EventLoopGroup中的一个进行绑定
-        // EventLoop在绑定了Channel之后才会开启轮询
+        // EventLoop在绑定了Channel之后才会开启轮询,线程才会启动
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
