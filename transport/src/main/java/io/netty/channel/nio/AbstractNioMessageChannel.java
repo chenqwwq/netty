@@ -62,6 +62,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         // 而NioByteUnsafe则是以Byte存储
         private final List<Object> readBuf = new ArrayList<Object>();
 
+        /**
+         * 服务端读写功能
+         */
         @Override
         public void read() {
             // 读数据
@@ -76,11 +79,11 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 try {
                     do {
-                        // 这里其实是获取
                         /**
                          * 具体的实现在{@link io.netty.channel.socket.nio.NioServerSocketChannel#doReadMessages(List)}
                          */
                         int localRead = doReadMessages(readBuf);
+                        // 实现中return 0，表示啥都没获取到
                         if (localRead == 0) {
                             break;
                         }
@@ -97,12 +100,16 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 }
 
                 int size = readBuf.size();
+                // 对每一个读取到的数据触发一个ChannelRead事件
                 for (int i = 0; i < size; i++) {
                     readPending = false;
+                    // 直接从DefaultChannelPipeline来看,ChannelRead事件会从HeadContext开始传送
+                    // 除了HeadContext还有自定义的一些Handler，以及ServerBootstrapAcceptor
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
                 readBuf.clear();
                 allocHandle.readComplete();
+                // 读取完毕之后触发ChannelComplete
                 pipeline.fireChannelReadComplete();
 
                 if (exception != null) {

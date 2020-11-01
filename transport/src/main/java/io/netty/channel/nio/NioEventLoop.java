@@ -442,6 +442,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 try {
                     /** {@link io.netty.channel.DefaultSelectStrategy} **/
                     // 如果有任务会返回selectNow的值，如果灭有返回SelectStrategy.SELECT
+                    // selectNowSupplier是直接实现的selectNow
                     strategy = selectStrategy.calculateStrategy(selectNowSupplier, hasTasks());
                     switch (strategy) {
                         case SelectStrategy.CONTINUE:
@@ -463,6 +464,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
                             // 这里是计算需要等待的时间
                             // 找到队列中下一个计划好的时间,直接从优先级队列中查看队首的任务
+                            /**
+                             * @see AbstractScheduledEventExecutor
+                             */
                             long curDeadlineNanos = nextScheduledTaskDeadlineNanos();
                             if (curDeadlineNanos == -1L) {
                                 curDeadlineNanos = NONE; // nothing on the calendar
@@ -632,7 +636,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             return;
         }
 
-        // 遍历
+        // 遍历触发的IO事件
         Iterator<SelectionKey> i = selectedKeys.iterator();
         for (; ; ) {
             // 获取一个IO事件
@@ -701,7 +705,6 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * 处理具体的IO事件
      */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
-        // 这里需
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
         if (!k.isValid()) {
             final EventLoop eventLoop;

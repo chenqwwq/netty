@@ -1451,6 +1451,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         public void channelActive(ChannelHandlerContext ctx) {
             ctx.fireChannelActive();
             // 先往后传递ChannelActive事件，处理完之后如果AutoRead
+            // 首次会在绑定端口之后传入，
+            // 在服务端的前端Accepter线程中，read的是Accept事件
             readIfIsAutoRead();
         }
 
@@ -1467,7 +1469,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         @Override
         public void channelReadComplete(ChannelHandlerContext ctx) {
             ctx.fireChannelReadComplete();
-
+            // 一次读取事件已经完成,如果auto read开着的话，直接开启新一轮的读取
             readIfIsAutoRead();
         }
 
