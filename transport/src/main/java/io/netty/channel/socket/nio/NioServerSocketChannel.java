@@ -151,7 +151,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     }
 
     /**
-     * 读取
+     * 读取Accept的事件响应
      */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
@@ -161,6 +161,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
         try {
             if (ch != null) {
+                // 这里直接封装了NioSocketChannel，并添加到了buf中
                 buf.add(new NioSocketChannel(this, ch));
                 return 1;
             }

@@ -263,15 +263,19 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     private boolean fetchFromScheduledTaskQueue() {
+        // 为什么这个Collection的判断不整个工具类呢??
         if (scheduledTaskQueue == null || scheduledTaskQueue.isEmpty()) {
             return true;
         }
         long nanoTime = AbstractScheduledEventExecutor.nanoTime();
         for (; ; ) {
+            // 获取当前时间段可以执行的任务
+            // @doubt for循环外面获取时间然后在里面判断，感觉上不是太好
             Runnable scheduledTask = pollScheduledTask(nanoTime);
             if (scheduledTask == null) {
                 return true;
             }
+            // 添加到任务队列中，如果添加失败返回到定时队列中
             if (!taskQueue.offer(scheduledTask)) {
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
                 scheduledTaskQueue.add((ScheduledFutureTask<?>) scheduledTask);
@@ -360,15 +364,24 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         boolean ranAtLeastOne = false;
 
         do {
+            // 定时任务的实行逻辑，将到时间的任务都添加到taskQueue
+            // fetchedAll表示任务是否已经取完了
             fetchedAll = fetchFromScheduledTaskQueue();
+            // 执行taskQueue里的任务,
+            // 此时到期的定时任务也已经添加到taskQueue
             if (runAllTasksFrom(taskQueue)) {
                 ranAtLeastOne = true;
             }
         } while (!fetchedAll); // keep on processing until we fetched all scheduled tasks.
 
+        // 最少执行过一次，就修改最后的执行时间
         if (ranAtLeastOne) {
             lastExecutionTime = ScheduledFutureTask.nanoTime();
         }
+
+        /**
+         * 这里常见的继承有{@link SingleThreadEventLoop}
+         */
         afterRunningAllTasks();
         return ranAtLeastOne;
     }

@@ -216,17 +216,23 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             };
         }
 
+        /**
+         * 在bossGroup中读取到的NioSocketChannel，经过ChannelRead事件传递到这
+         */
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             final Channel child = (Channel) msg;
 
+            // 初始化Pipeline,这里只是塞进去一个init类，具体的初始化还是在register后
             child.pipeline().addLast(childHandler);
-
+            // 设置Options以及Attribute
             setChannelOptions(child, childOptions, logger);
             setAttributes(child, childAttrs);
 
             try {
+                // 注册到childGroup，也就是从中选取一个并绑定
+                // 绑定过程就不说了，不过这个Channel在绑定之后会就开启read
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
