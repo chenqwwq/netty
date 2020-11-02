@@ -52,6 +52,9 @@ public final class EchoServer {
 
         // Configure the server.
         // doubt: EventLoop，EventLoopGroup，EventExecutor等类之间的关系
+        // 初始化EventLoopGroup
+        // 会一起初始化nThreads个EventLoop，但是其中并不会开启线程
+        // 每个EventLoop会各自生成Selector
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();

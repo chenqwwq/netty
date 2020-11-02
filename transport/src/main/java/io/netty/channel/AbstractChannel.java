@@ -28,11 +28,7 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.io.IOException;
-import java.net.ConnectException;
-import java.net.InetSocketAddress;
-import java.net.NoRouteToHostException;
-import java.net.SocketAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.util.concurrent.Executor;
@@ -452,6 +448,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             return remoteAddress0();
         }
 
+        /**
+         * 将Channel注册到参数1EventLoop中
+         */
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             ObjectUtil.checkNotNull(eventLoop, "eventLoop");
@@ -472,6 +471,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 register0(promise);
             } else {
                 try {
+                    /**
+                     * @see io.netty.util.concurrent.SingleThreadEventExecutor#execute(Runnable)
+                     */
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -539,6 +541,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        // 最终完成原生端口绑定的地方
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
             assertEventLoop();
@@ -560,8 +563,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                                 "address (" + localAddress + ") anyway as requested.");
             }
 
+            // 前置判断是否处于活动状态
             boolean wasActive = isActive();
             try {
+                // doBind为父类模板方法
+                /** {@link io.netty.channel.socket.nio.NioServerSocketChannel#doBind(SocketAddress)}  **/
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
@@ -575,6 +581,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 invokeLater(new Runnable() {
                     @Override
                     public void run() {
+                        // 这里触发的是渠道的ChannelActive事件
                         pipeline.fireChannelActive();
                     }
                 });
@@ -872,6 +879,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         }
 
         @Override
+        // 写事件的基本框架
         public final void write(Object msg, ChannelPromise promise) {
             assertEventLoop();
 
@@ -889,6 +897,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             int size;
             try {
+                // 对出站消息的拦截过滤
                 msg = filterOutboundMessage(msg);
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
@@ -900,6 +909,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 添加到缓冲区，没有flush所以还没有写到网卡发送
             outboundBuffer.addMessage(msg, size, promise);
         }
 
