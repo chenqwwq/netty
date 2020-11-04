@@ -220,8 +220,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
 
         if (readerIndex != writerIndex) {
-            setBytes(0, this, readerIndex, writerIndex - readerIndex);
-            writerIndex -= readerIndex;
+            setBytes(0, this, readerIndex, writerIndex -= readerIndex);
             adjustMarkers(readerIndex);
             readerIndex = 0;
         } else {
@@ -243,8 +242,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
             }
 
             if (readerIndex >= capacity() >>> 1) {
-                setBytes(0, this, readerIndex, writerIndex - readerIndex);
-                writerIndex -= readerIndex;
+                setBytes(0, this, readerIndex, writerIndex -= readerIndex);
                 adjustMarkers(readerIndex);
                 readerIndex = 0;
                 return this;
