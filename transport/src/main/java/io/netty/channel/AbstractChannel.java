@@ -409,6 +409,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     }
 
     /**
+     * 在AbstractUnsafe类中初步实现了一些逻辑
+     * 并确保了部分方法的执行原则，在绑定的EventLoop中执行
+     * <p>
      * {@link Unsafe} implementation which sub-classes must extend and use.
      */
     protected abstract class AbstractUnsafe implements Unsafe {
@@ -491,6 +494,15 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * Nio的注册事件，最终要完成的效果就是将Channel注册到EventLoop中
+         * 1. 执行Channel注册逻辑
+         * 2. 初始化pipeline
+         * 3. 触发ChannelRegistered,HeadContext的方法中也会触发一次Pipeline的初始化，@doubt: 暂时不知道为什么两次初始化
+         * 4. 可能触发ChannelActive,如果开启autoRead，会在HeadContext注册对应事件,前端连接线程注册Accept事件，IO线程注册Read事件
+         *
+         * @param promise 异步事件回调和结果
+         */
         private void register0(ChannelPromise promise) {
             try {
                 // check if the channel is still open as it could be closed in the mean time when the register
@@ -512,6 +524,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
+                // 注册成功后会初始化Channel中的Pipeline
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
@@ -541,7 +554,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
-        // 最终完成原生端口绑定的地方
+        /**
+         * Nio底层的端口绑定逻辑
+         * <p>
+         * 1.
+         */
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
             assertEventLoop();
@@ -558,7 +575,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // Warn a user about the fact that a non-root user can't receive a
                 // broadcast packet on *nix if the socket is bound on non-wildcard address.
                 logger.warn(
-                        "A non-root user can't receive a broadcast packet if the socket " +
+                        "A non-root user can't receive a adcast packet if the socket " +
                                 "is not bound to a wildcard address; binding to a non-wildcard " +
                                 "address (" + localAddress + ") anyway as requested.");
             }
@@ -575,7 +592,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
-            // 之前未绑定，但是现在绑定了端口
+            // 之前未绑定，但是现在绑定了端口，NioServerSocketChannel的规则是Channel打开状态并且绑定了端口就算Active
             // 触发fireChannelActive
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {

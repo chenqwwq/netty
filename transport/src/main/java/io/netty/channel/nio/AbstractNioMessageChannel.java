@@ -15,12 +15,7 @@
  */
 package io.netty.channel.nio;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelConfig;
-import io.netty.channel.ChannelOutboundBuffer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.ServerChannel;
+import io.netty.channel.*;
 
 import java.io.IOException;
 import java.net.PortUnreachableException;
@@ -63,7 +58,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         private final List<Object> readBuf = new ArrayList<Object>();
 
         /**
-         * 服务端读写功能
+         * 服务端读取数据
          */
         @Override
         public void read() {
@@ -71,6 +66,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             assert eventLoop().inEventLoop();
             final ChannelConfig config = config();
             final ChannelPipeline pipeline = pipeline();
+            // @doubt: recvByteBufAllocator具体的作用
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             allocHandle.reset(config);
 
@@ -81,6 +77,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                     do {
                         /**
                          * 具体的实现在{@link io.netty.channel.socket.nio.NioServerSocketChannel#doReadMessages(List)}
+                         *
+                         * 因为是NioServerSocketChannel，服务端Channel所以主要读取的是Accept事件，将获取的Channel直接包装成了NioSocketChannel
+                         * readBuf就是读取到的数据，此处因为是accept时间，readBuf中存放的是NioSocketChannel
                          */
                         int localRead = doReadMessages(readBuf);
                         // 实现中return 0，表示啥都没获取到
@@ -100,11 +99,18 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 }
 
                 int size = readBuf.size();
+                /**
+                 * 读取到的NioSocketChannel在这里使用ChannelRead时间传递出去
+                 * 在ServerBootstrapAccepter中完成进一步的注册初始化操作
+                 */
                 // 对每一个读取到的数据触发一个ChannelRead事件
                 for (int i = 0; i < size; i++) {
                     readPending = false;
                     // 直接从DefaultChannelPipeline来看,ChannelRead事件会从HeadContext开始传送
                     // 除了HeadContext还有自定义的一些Handler，以及ServerBootstrapAcceptor
+                    /**
+                     * @see io.netty.bootstrap.ServerBootstrap.ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object) 
+                     */
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
                 readBuf.clear();

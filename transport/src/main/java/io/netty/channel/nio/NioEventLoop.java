@@ -598,6 +598,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * 该方法处理所有就绪的SelectionKey
      */
     private void processSelectedKeys() {
+        // 上面试进过优化的SelectKeys选择方案
+        // 以下是经过原生的获取方式
         if (selectedKeys != null) {
             processSelectedKeysOptimized();
         } else {
@@ -642,10 +644,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // 获取一个IO事件
             final SelectionKey k = i.next();
             // 获取了Key绑定的对象
+            // doubt:不知道这个是在哪绑定上去
             final Object a = k.attachment();
             i.remove();
 
-            // doubt:不知道这个是在哪绑定上去
+            // AbstractNioChannel好理解，因为NioServerSocketChannel以及NioSocketChannel都是其子
+            // NioTask就不知道是什么鬼了
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
             } else {

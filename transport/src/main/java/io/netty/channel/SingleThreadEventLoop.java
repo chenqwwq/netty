@@ -135,6 +135,11 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         return tailTasks.remove(ObjectUtil.checkNotNull(task, "task"));
     }
 
+    /**
+     * 在{@link SingleThreadEventExecutor#runAllTasks()}方法最后被调用，执行完所有任务之后继续执行tailTasks中的任务
+     * <p>
+     * tailTasks相当于一个低优先级的任务集合
+     */
     @Override
     protected void afterRunningAllTasks() {
         runAllTasksFrom(tailTasks);
