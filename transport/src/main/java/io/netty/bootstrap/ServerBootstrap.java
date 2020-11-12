@@ -150,6 +150,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
 
         // 往Pipeline中添加配置中的Handler以及异步的添加ServerBootStrapAcceptor
+        // 这里是将ChannelInitializer作为单个ChannelHandler添加到Pipeline的
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
