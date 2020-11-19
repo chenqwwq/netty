@@ -488,17 +488,25 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 } catch (IOException e) {
                     // If we receive an IOException here its because the Selector is messed up. Let's rebuild
                     // the selector and retry. https://github.com/netty/netty/issues/8566
+                    // 重建Selector
                     rebuildSelector0();
                     selectCnt = 0;
                     handleLoopException(e);
                     continue;
                 }
+                // 到这里，strategy就肯定带了select的结果
+                // 1. 没有任务，会调用阻塞的select方法
+                // 2. 有任务，会直接调用selectNow方法
 
                 selectCnt++;
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
                 final int ioRatio = this.ioRatio;
                 boolean ranTasks;
+                // ioRatio就是io事件的比例
+                // runAllTasks以任务执行时长为参数
+                // 在第二个else中可以明确看到这个逻辑
+                // 除io事件之外的其他三个任务的执行事件是io事件执行时间的 (100 - ioRatio) / ioRatio倍
                 if (ioRatio == 100) {
                     try {
                         if (strategy > 0) {
@@ -710,9 +718,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
+        // 检测Channel是否合法
         if (!k.isValid()) {
             final EventLoop eventLoop;
             try {
+                // 获取绑定的EventLoop
                 eventLoop = ch.eventLoop();
             } catch (Throwable ignored) {
                 // If the channel implementation throws an exception because there is no event loop, we ignore this

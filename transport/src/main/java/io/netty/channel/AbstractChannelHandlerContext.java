@@ -104,6 +104,13 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return channel().config().getAllocator();
     }
 
+    /**
+     * 获取ChannelHandlerContext绑定的EventExecutor，
+     * <p>
+     * 为空的时候会直接获取Channel绑定的EventLoop
+     * <p>
+     * 所以相对的HeadContext和TailContext都是在绑定的EventLoop上执行的
+     */
     @Override
     public EventExecutor executor() {
         if (executor == null) {

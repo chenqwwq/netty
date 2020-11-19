@@ -67,6 +67,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             final ChannelConfig config = config();
             final ChannelPipeline pipeline = pipeline();
             // @doubt: recvByteBufAllocator具体的作用
+            // 获取服务端(接收端)的内存分配器
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             allocHandle.reset(config);
 
@@ -109,7 +110,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                     // 直接从DefaultChannelPipeline来看,ChannelRead事件会从HeadContext开始传送
                     // 除了HeadContext还有自定义的一些Handler，以及ServerBootstrapAcceptor
                     /**
-                     * @see io.netty.bootstrap.ServerBootstrap.ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object) 
+                     * @see io.netty.bootstrap.ServerBootstrap.ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object)
                      */
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
