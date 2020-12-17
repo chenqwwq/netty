@@ -95,8 +95,10 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
         directMemoryCacheAlignment = cacheAlignment;
         directMemoryCacheAlignmentMask = cacheAlignment - 1;
 
+        // 创建Subpage的数组
         numSmallSubpagePools = nSubpages;
         smallSubpagePools = newSubpagePoolArray(numSmallSubpagePools);
+        // subpage是一个链表形式的
         for (int i = 0; i < smallSubpagePools.length; i++) {
             smallSubpagePools[i] = newSubpagePoolHead();
         }
@@ -150,8 +152,11 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
         final int sizeIdx = size2SizeIdx(reqCapacity);
 
         if (sizeIdx <= smallMaxSizeIdx) {
+            // 从线程本地的缓冲分配小内存
+            // 分配内存进buf
             tcacheAllocateSmall(cache, buf, reqCapacity, sizeIdx);
         } else if (sizeIdx < nSizes) {
+            // 分配normal内存
             tcacheAllocateNormal(cache, buf, reqCapacity, sizeIdx);
         } else {
             int normCapacity = directMemoryCacheAlignment > 0

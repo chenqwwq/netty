@@ -16,6 +16,7 @@
 
 package io.netty.buffer;
 
+import static io.netty.buffer.PoolThreadCache.log2;
 import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
 
 import io.netty.util.NettyRuntime;
@@ -178,6 +179,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     public static final PooledByteBufAllocator DEFAULT =
             new PooledByteBufAllocator(PlatformDependent.directBufferPreferred());
 
+    // 由Allocator来维护所有申请的堆内存以及直接内存
     private final PoolArena<byte[]>[] heapArenas;
     private final PoolArena<ByteBuffer>[] directArenas;
     private final int smallCacheSize;
@@ -209,7 +211,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     @Deprecated
     public PooledByteBufAllocator(boolean preferDirect, int nHeapArena, int nDirectArena, int pageSize, int maxOrder) {
         this(preferDirect, nHeapArena, nDirectArena, pageSize, maxOrder,
-             0, DEFAULT_SMALL_CACHE_SIZE, DEFAULT_NORMAL_CACHE_SIZE);
+                0, DEFAULT_SMALL_CACHE_SIZE, DEFAULT_NORMAL_CACHE_SIZE);
     }
 
     /**
@@ -220,7 +222,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     public PooledByteBufAllocator(boolean preferDirect, int nHeapArena, int nDirectArena, int pageSize, int maxOrder,
                                   int tinyCacheSize, int smallCacheSize, int normalCacheSize) {
         this(preferDirect, nHeapArena, nDirectArena, pageSize, maxOrder, smallCacheSize,
-             normalCacheSize, DEFAULT_USE_CACHE_FOR_ALL_THREADS, DEFAULT_DIRECT_MEMORY_CACHE_ALIGNMENT);
+                normalCacheSize, DEFAULT_USE_CACHE_FOR_ALL_THREADS, DEFAULT_DIRECT_MEMORY_CACHE_ALIGNMENT);
     }
 
     /**
@@ -233,8 +235,8 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
                                   int smallCacheSize, int normalCacheSize,
                                   boolean useCacheForAllThreads) {
         this(preferDirect, nHeapArena, nDirectArena, pageSize, maxOrder,
-             smallCacheSize, normalCacheSize,
-             useCacheForAllThreads);
+                smallCacheSize, normalCacheSize,
+                useCacheForAllThreads);
     }
 
     public PooledByteBufAllocator(boolean preferDirect, int nHeapArena,
@@ -242,8 +244,8 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
                                   int smallCacheSize, int normalCacheSize,
                                   boolean useCacheForAllThreads) {
         this(preferDirect, nHeapArena, nDirectArena, pageSize, maxOrder,
-             smallCacheSize, normalCacheSize,
-             useCacheForAllThreads, DEFAULT_DIRECT_MEMORY_CACHE_ALIGNMENT);
+                smallCacheSize, normalCacheSize,
+                useCacheForAllThreads, DEFAULT_DIRECT_MEMORY_CACHE_ALIGNMENT);
     }
 
     /**
@@ -255,10 +257,23 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
                                   int tinyCacheSize, int smallCacheSize, int normalCacheSize,
                                   boolean useCacheForAllThreads, int directMemoryCacheAlignment) {
         this(preferDirect, nHeapArena, nDirectArena, pageSize, maxOrder,
-             smallCacheSize, normalCacheSize,
-             useCacheForAllThreads, directMemoryCacheAlignment);
+                smallCacheSize, normalCacheSize,
+                useCacheForAllThreads, directMemoryCacheAlignment);
     }
 
+    /**
+     * 池化内存的构造函数
+     *
+     * @param preferDirect               是否更倾向于直接内存
+     * @param nHeapArena                 多少个堆空间
+     * @param nDirectArena               多少个直接内存空间
+     * @param pageSize                   Page大小
+     * @param maxOrder                   最大层级,chunkSize就是pageSize × 2 ^ maxOrder
+     * @param smallCacheSize
+     * @param normalCacheSize
+     * @param useCacheForAllThreads      是否对所有的Thread使用缓存
+     * @param directMemoryCacheAlignment
+     */
     public PooledByteBufAllocator(boolean preferDirect, int nHeapArena, int nDirectArena, int pageSize, int maxOrder,
                                   int smallCacheSize, int normalCacheSize,
                                   boolean useCacheForAllThreads, int directMemoryCacheAlignment) {
@@ -283,10 +298,12 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
         int pageShifts = validateAndCalculatePageShifts(pageSize);
 
+        // 申请堆内存
         if (nHeapArena > 0) {
             heapArenas = newArenaArray(nHeapArena);
+            // 将堆内存封装为HeapArena
             List<PoolArenaMetric> metrics = new ArrayList<PoolArenaMetric>(heapArenas.length);
-            for (int i = 0; i < heapArenas.length; i ++) {
+            for (int i = 0; i < heapArenas.length; i++) {
                 PoolArena.HeapArena arena = new PoolArena.HeapArena(this,
                         pageSize, pageShifts, chunkSize,
                         directMemoryCacheAlignment);
@@ -299,10 +316,12 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
             heapArenaMetrics = Collections.emptyList();
         }
 
+        // 申请直接内存
         if (nDirectArena > 0) {
+            // 初始化Arena的数组和堆内存用的同一个方法
             directArenas = newArenaArray(nDirectArena);
             List<PoolArenaMetric> metrics = new ArrayList<PoolArenaMetric>(directArenas.length);
-            for (int i = 0; i < directArenas.length; i ++) {
+            for (int i = 0; i < directArenas.length; i++) {
                 PoolArena.DirectArena arena = new PoolArena.DirectArena(
                         this, pageSize, pageShifts, chunkSize, directMemoryCacheAlignment);
                 directArenas[i] = arena;
@@ -341,7 +360,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
         // Ensure the resulting chunkSize does not overflow.
         int chunkSize = pageSize;
-        for (int i = maxOrder; i > 0; i --) {
+        for (int i = maxOrder; i > 0; i--) {
             if (chunkSize > MAX_CHUNK_SIZE / 2) {
                 throw new IllegalArgumentException(String.format(
                         "pageSize (%d) << maxOrder (%d) must not exceed %d", pageSize, maxOrder, MAX_CHUNK_SIZE));
@@ -370,11 +389,13 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
     @Override
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
+        // 获取本地缓存
         PoolThreadCache cache = threadCache.get();
         PoolArena<ByteBuffer> directArena = cache.directArena;
 
         final ByteBuf buf;
         if (directArena != null) {
+            // 分配内存
             buf = directArena.allocate(cache, initialCapacity, maxCapacity);
         } else {
             buf = PlatformDependent.hasUnsafe() ?
@@ -487,20 +508,32 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
             this.useCacheForAllThreads = useCacheForAllThreads;
         }
 
+        /**
+         * FastThreadLocal的初始化函数，在没有get到数据的时候会调用该方法
+         * <p>
+         * 在PooledByteBufAllocator中，获取线程本地的内存缓存时会先调用该方法初始化
+         */
         @Override
         protected synchronized PoolThreadCache initialValue() {
+            // 找到最少使用的PoolArena
+            /** {@link PoolArena#numThreadCaches} **/
             final PoolArena<byte[]> heapArena = leastUsedArena(heapArenas);
             final PoolArena<ByteBuffer> directArena = leastUsedArena(directArenas);
 
             final Thread current = Thread.currentThread();
+            // 是否采用全局缓存
+            // 如果线程是FastThreadLocalThread的话全局采用
             if (useCacheForAllThreads || current instanceof FastThreadLocalThread) {
                 final PoolThreadCache cache = new PoolThreadCache(
                         heapArena, directArena, smallCacheSize, normalCacheSize,
                         DEFAULT_MAX_CACHED_BUFFER_CAPACITY, DEFAULT_CACHE_TRIM_INTERVAL);
 
+                // 注册内存修剪的事件
                 if (DEFAULT_CACHE_TRIM_INTERVAL_MILLIS > 0) {
+                    // 获取本地的事件执行器
                     final EventExecutor executor = ThreadExecutorMap.currentExecutor();
                     if (executor != null) {
+                        // 注册周期性事件
                         executor.scheduleAtFixedRate(trimTask, DEFAULT_CACHE_TRIM_INTERVAL_MILLIS,
                                 DEFAULT_CACHE_TRIM_INTERVAL_MILLIS, TimeUnit.MILLISECONDS);
                     }
@@ -661,7 +694,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     }
 
     final PoolThreadCache threadCache() {
-        PoolThreadCache cache =  threadCache.get();
+        PoolThreadCache cache = threadCache.get();
         assert cache != null;
         return cache;
     }
@@ -669,7 +702,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     /**
      * Trim thread local cache for the current {@link Thread}, which will give back any cached memory that was not
      * allocated frequently since the last trim operation.
-     *
+     * <p>
      * Returns {@code true} if a cache for the current {@link Thread} exists and so was trimmed, false otherwise.
      */
     public boolean trimCurrentThreadCache() {
@@ -692,7 +725,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
                 .append(" heap arena(s):")
                 .append(StringUtil.NEWLINE);
         if (heapArenasLen > 0) {
-            for (PoolArena<byte[]> a: heapArenas) {
+            for (PoolArena<byte[]> a : heapArenas) {
                 buf.append(a);
             }
         }
@@ -700,10 +733,10 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
         int directArenasLen = directArenas == null ? 0 : directArenas.length;
 
         buf.append(directArenasLen)
-           .append(" direct arena(s):")
-           .append(StringUtil.NEWLINE);
+                .append(" direct arena(s):")
+                .append(StringUtil.NEWLINE);
         if (directArenasLen > 0) {
-            for (PoolArena<ByteBuffer> a: directArenas) {
+            for (PoolArena<ByteBuffer> a : directArenas) {
                 buf.append(a);
             }
         }

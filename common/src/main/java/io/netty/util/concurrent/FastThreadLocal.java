@@ -47,7 +47,7 @@ public class FastThreadLocal<V> {
      * 删除集合的下标
      * 静态常量，在类加载的时候就赋值
      */
-    private static final int variablesToRemoveIndex = InternalThreadLocalMap.nextVariableIndex();
+    public static final int variablesToRemoveIndex = InternalThreadLocalMap.nextVariableIndex();
 
     /**
      * Removes all {@link FastThreadLocal} variables bound to the current thread.  This operation is useful when you

@@ -475,6 +475,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             } else {
                 try {
                     /**
+                     * 以NioEventLoop为例，在此时刚开始执行executor方法
+                     *
                      * @see io.netty.util.concurrent.SingleThreadEventExecutor#execute(Runnable)
                      */
                     eventLoop.execute(new Runnable() {
@@ -525,6 +527,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
                 // 注册成功后会初始化Channel中的Pipeline
+                // 因为后面立马要执行ChannelRegistered事件
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);

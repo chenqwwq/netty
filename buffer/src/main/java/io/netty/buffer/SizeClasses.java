@@ -300,6 +300,7 @@ abstract class SizeClasses implements SizeClassesMetric {
         return groupSize + modSize;
     }
 
+
     @Override
     public int size2SizeIdx(int size) {
         if (size == 0) {

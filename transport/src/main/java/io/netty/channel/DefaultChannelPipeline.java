@@ -239,6 +239,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
             // 这里是在注册之后的调用逻辑
             EventExecutor executor = newCtx.executor();
+            // 当前线程是否是EventLoop的线程
             if (!executor.inEventLoop()) {
                 callHandlerAddedInEventLoop(newCtx, executor);
                 return this;

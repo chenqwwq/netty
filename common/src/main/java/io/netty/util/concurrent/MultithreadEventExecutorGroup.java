@@ -75,7 +75,8 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         if (executor == null) {
             // 执行器为空的话需要新建一个,用默认的ThreadFactory
             // 这个执行器很特别，任何任务都会直接开一个新的线程执行
-            // 这里创建的Thread其实经过包装，真实对象是FastThreadLocalThread，肯定是继承了Thread的
+            // 这里创建的Thread其实经过包装的FastThreadLocalThread
+            // 另外这个Executor会被所有Group中的EventLoop共享
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
