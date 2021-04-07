@@ -62,6 +62,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
          */
         @Override
         public void read() {
+            System.out.println("NioMessageUnsafe#read()");
             // 读数据
             assert eventLoop().inEventLoop();
             final ChannelConfig config = config();

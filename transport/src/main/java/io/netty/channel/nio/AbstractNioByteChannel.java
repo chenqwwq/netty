@@ -133,6 +133,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
         @Override
         public final void read() {
+            System.out.println("NioByteUnsafe#read()");
             final ChannelConfig config = config();
             if (shouldBreakReadReady(config)) {
                 clearReadPending();

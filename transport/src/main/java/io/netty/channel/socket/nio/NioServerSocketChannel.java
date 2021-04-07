@@ -45,6 +45,9 @@ import java.util.Map;
 public class NioServerSocketChannel extends AbstractNioMessageChannel
         implements io.netty.channel.socket.ServerSocketChannel {
 
+    /**
+     * @see RecvByteBufAllocator DefaultChannelConfig中使用该变量配置
+     */
     private static final ChannelMetadata METADATA = new ChannelMetadata(false, 16);
     private static final SelectorProvider DEFAULT_SELECTOR_PROVIDER = SelectorProvider.provider();
 

@@ -72,6 +72,7 @@ public final class EchoServer {
                     // 服务端Channel的配置
                     // 常用的还有SO_KEEPALIVE,SO_SNDBUF,SO_RCVBUF等
                     .option(ChannelOption.SO_BACKLOG, 100)
+                    .option(ChannelOption.AUTO_READ, false)
                     // 服务端的Handler
                     // doubt: 服务端Handler的处理逻辑
                     // 搜了下网上说是handler仅仅在初始化时执行一次

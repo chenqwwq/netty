@@ -51,14 +51,14 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
     /**
      * Determine if future instances of {@link #newHandle()} will stop reading if we think there is no more data.
-     * @param respectMaybeMoreData
-     * <ul>
-     *     <li>{@code true} to stop reading if we think there is no more data. This may save a system call to read from
-     *          the socket, but if data has arrived in a racy fashion we may give up our {@link #maxMessagesPerRead()}
-     *          quantum and have to wait for the selector to notify us of more data.</li>
-     *     <li>{@code false} to keep reading (up to {@link #maxMessagesPerRead()}) or until there is no data when we
-     *          attempt to read.</li>
-     * </ul>
+     *
+     * @param respectMaybeMoreData <ul>
+     *                                 <li>{@code true} to stop reading if we think there is no more data. This may save a system call to read from
+     *                                      the socket, but if data has arrived in a racy fashion we may give up our {@link #maxMessagesPerRead()}
+     *                                      quantum and have to wait for the selector to notify us of more data.</li>
+     *                                 <li>{@code false} to keep reading (up to {@link #maxMessagesPerRead()}) or until there is no data when we
+     *                                      attempt to read.</li>
+     *                             </ul>
      * @return {@code this}.
      */
     public DefaultMaxMessagesRecvByteBufAllocator respectMaybeMoreData(boolean respectMaybeMoreData) {
@@ -68,8 +68,8 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
     /**
      * Get if future instances of {@link #newHandle()} will stop reading if we think there is no more data.
-     * @return
-     * <ul>
+     *
+     * @return <ul>
      *     <li>{@code true} to stop reading if we think there is no more data. This may save a system call to read from
      *          the socket, but if data has arrived in a racy fashion we may give up our {@link #maxMessagesPerRead()}
      *          quantum and have to wait for the selector to notify us of more data.</li>
@@ -139,10 +139,13 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
         @Override
         public boolean continueReading(UncheckedBooleanSupplier maybeMoreDataSupplier) {
+            /**
+             * {@link io.netty.channel.nio.AbstractNioMessageChannel}中处理Accept事件的时候如果不是AutoRead，这里会直接退出
+             */
             return config.isAutoRead() &&
-                   (!respectMaybeMoreData || maybeMoreDataSupplier.get()) &&
-                   totalMessages < maxMessagePerRead &&
-                   totalBytesRead > 0;
+                    (!respectMaybeMoreData || maybeMoreDataSupplier.get()) &&
+                    totalMessages < maxMessagePerRead &&
+                    totalBytesRead > 0;
         }
 
         @Override

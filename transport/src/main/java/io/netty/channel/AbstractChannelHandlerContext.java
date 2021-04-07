@@ -34,6 +34,11 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 import static io.netty.channel.ChannelHandlerMask.*;
 
+/**
+ * ChannelHandler的抽象包装类,
+ * <p>
+ * 该类由默认的{@link DefaultChannelHandlerContext}实现
+ */
 abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, ResourceLeakHint {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannelHandlerContext.class);
@@ -687,7 +692,6 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     @Override
     public ChannelFuture write(final Object msg, final ChannelPromise promise) {
         write(msg, false, promise);
-
         return promise;
     }
 
